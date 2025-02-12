@@ -2543,7 +2543,7 @@ class HWSlotList(DeviceRequiredUnit):
                 print(f"{CY if enabled[fwslot]['lf'] else C0}{lf_tag_type}{C0}")
             else:
                 print("undef")
-            if (not args.short) and enabled[fwslot]['lf'] and hf_tag_type != TagSpecificType.UNDEFINED:
+            if (not args.short) and enabled[fwslot]['lf'] and lf_tag_type != TagSpecificType.UNDEFINED:
                 if current != slot:
                     self.cmd.set_active_slot(slot)
                     current = slot
