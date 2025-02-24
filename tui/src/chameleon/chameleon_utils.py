@@ -7,7 +7,7 @@ from prompt_toolkit.completion import Completer, NestedCompleter, WordCompleter
 from prompt_toolkit.completion.base import Completion
 from prompt_toolkit.document import Document
 
-from chameleon_enum import Status
+from chameleon.chameleon_enum import Status
 
 # Colorama shorthands
 CR = colorama.Fore.RED

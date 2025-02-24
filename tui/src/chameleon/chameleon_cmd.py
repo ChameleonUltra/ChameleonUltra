@@ -2,11 +2,11 @@ import struct
 import ctypes
 from typing import Union
 
-import chameleon_com
-from chameleon_utils import expect_response
-from chameleon_enum import Command, SlotNumber, Status, TagSenseType, TagSpecificType
-from chameleon_enum import ButtonPressFunction, ButtonType, MifareClassicDarksideStatus
-from chameleon_enum import MfcKeyType, MfcValueBlockOperator
+from chameleon import chameleon_com
+from chameleon.chameleon_utils import expect_response
+from chameleon.chameleon_enum import Command, SlotNumber, Status, TagSenseType, TagSpecificType
+from chameleon.chameleon_enum import ButtonPressFunction, ButtonType, MifareClassicDarksideStatus
+from chameleon.chameleon_enum import MfcKeyType, MfcValueBlockOperator
 
 CURRENT_VERSION_SETTINGS = 5
 

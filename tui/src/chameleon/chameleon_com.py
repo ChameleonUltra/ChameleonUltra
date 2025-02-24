@@ -4,8 +4,8 @@ import threading
 import time
 import serial
 from typing import Union
-from chameleon_utils import CR, CG, CC, CY, C0
-from chameleon_enum import Command, Status
+from chameleon.chameleon_utils import CR, CG, CC, CY, C0
+from chameleon.chameleon_enum import Command, Status
 
 # each thread is waiting for its data for 100 ms before looping again
 THREAD_BLOCKING_TIMEOUT = 0.1

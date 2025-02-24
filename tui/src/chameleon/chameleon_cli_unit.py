@@ -16,15 +16,15 @@ from pathlib import Path
 from platform import uname
 from datetime import datetime
 
-import chameleon_com
-import chameleon_cmd
-from chameleon_utils import ArgumentParserNoExit, ArgsParserError, UnexpectedResponseError
-from chameleon_utils import CLITree
-from chameleon_utils import CR, CG, CB, CC, CY, C0
-from chameleon_utils import print_mem_dump
-from chameleon_enum import Command, Status, SlotNumber, TagSenseType, TagSpecificType
-from chameleon_enum import MifareClassicWriteMode, MifareClassicPrngType, MifareClassicDarksideStatus, MfcKeyType
-from chameleon_enum import AnimationMode, ButtonPressFunction, ButtonType, MfcValueBlockOperator
+from chameleon import chameleon_com
+from chameleon import chameleon_cmd
+from chameleon.chameleon_utils import ArgumentParserNoExit, ArgsParserError, UnexpectedResponseError
+from chameleon.chameleon_utils import CLITree
+from chameleon.chameleon_utils import CR, CG, CB, CC, CY, C0
+from chameleon.chameleon_utils import print_mem_dump
+from chameleon.chameleon_enum import Command, Status, SlotNumber, TagSenseType, TagSpecificType
+from chameleon.chameleon_enum import MifareClassicWriteMode, MifareClassicPrngType, MifareClassicDarksideStatus, MfcKeyType
+from chameleon.chameleon_enum import AnimationMode, ButtonPressFunction, ButtonType, MfcValueBlockOperator
 
 # NXP IDs based on https://www.nxp.com/docs/en/application-note/AN10833.pdf
 type_id_SAK_dict = {0x00: "MIFARE Ultralight Classic/C/EV1/Nano | NTAG 2xx",

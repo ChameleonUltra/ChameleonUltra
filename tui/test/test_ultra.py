@@ -5,9 +5,9 @@ import re
 import unittest
 sys.path.append('..')
 
-from chameleon_cli_main import ChameleonCLI        # noqa: E402
-import chameleon_cli_unit                          # noqa: E402
-from tests.output_grabber import OutputGrabber     # noqa: E402
+from chameleon.chameleon_cli_main import ChameleonCLI        # noqa: E402
+from chameleon import chameleon_cli_unit                          # noqa: E402
+from test import OutputGrabber     # noqa: E402
 
 
 class TestCLI(unittest.TestCase):

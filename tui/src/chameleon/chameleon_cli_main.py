@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 import argparse
-import sys
 import traceback
-import chameleon_com
-import colorama
-import chameleon_cli_unit
-import chameleon_utils
 import pathlib
 import prompt_toolkit
 from prompt_toolkit.formatted_text import ANSI
 from prompt_toolkit.history import FileHistory
-from chameleon_utils import CR, CG, CY, C0
+from chameleon import chameleon_com
+from chameleon import chameleon_cli_unit
+from chameleon import chameleon_utils
+from chameleon.chameleon_utils import CR, CG, CY, C0
 
 ULTRA = r"""
                                                                 ╦ ╦╦ ╔╦╗╦═╗╔═╗
@@ -178,11 +176,3 @@ class ChameleonCLI:
                 except KeyboardInterrupt:
                     cmd_str = 'exit'
             self.exec_cmd(cmd_str)
-
-
-if __name__ == '__main__':
-    if sys.version_info < (3, 9):
-        raise Exception("This script requires at least Python 3.9")
-    colorama.init(autoreset=True)
-    chameleon_cli_unit.check_tools()
-    ChameleonCLI().startCLI()
