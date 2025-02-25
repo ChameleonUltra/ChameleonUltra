@@ -1,12 +1,21 @@
-import struct
 import ctypes
-from typing import Union
+import struct
 
 from chameleon import chameleon_com
+from chameleon.chameleon_enum import (
+    ButtonPressFunction,
+    ButtonType,
+    Command,
+    MfcKeyType,
+    MfcValueBlockOperator,
+    MifareClassicDarksideStatus,
+    SlotNumber,
+    Status,
+    TagSenseType,
+    TagSpecificType,
+)
 from chameleon.chameleon_utils import expect_response
-from chameleon.chameleon_enum import Command, SlotNumber, Status, TagSenseType, TagSpecificType
-from chameleon.chameleon_enum import ButtonPressFunction, ButtonType, MifareClassicDarksideStatus
-from chameleon.chameleon_enum import MfcKeyType, MfcValueBlockOperator
+
 
 CURRENT_VERSION_SETTINGS = 5
 
@@ -166,7 +175,7 @@ class ChameleonCMD:
         return resp
 
     @expect_response(Status.HF_TAG_OK)
-    def mf1_darkside_acquire(self, block_target, type_target, first_recover: Union[int, bool], sync_max):
+    def mf1_darkside_acquire(self, block_target, type_target, first_recover: int | bool, sync_max):
         """
         Collect the key parameters needed for Darkside decryption.
 
@@ -631,7 +640,7 @@ class ChameleonCMD:
         """
             Resets authentication counter
         """
-        resp = self.device.send_cmd_sync(Command.MF0_NTAG_RESET_AUTH_CNT, bytes())
+        resp = self.device.send_cmd_sync(Command.MF0_NTAG_RESET_AUTH_CNT, b'')
         if resp.status == Status.SUCCESS:
             resp.parsed = resp.data[0]
         return resp

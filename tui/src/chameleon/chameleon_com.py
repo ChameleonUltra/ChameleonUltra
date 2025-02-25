@@ -2,10 +2,12 @@ import queue
 import struct
 import threading
 import time
+
 import serial
-from typing import Union
-from chameleon.chameleon_utils import CR, CG, CC, CY, C0
+
 from chameleon.chameleon_enum import Command, Status
+from chameleon.chameleon_utils import C0, CC, CG, CR, CY
+
 
 # each thread is waiting for its data for 100 ms before looping again
 THREAD_BLOCKING_TIMEOUT = 0.1
@@ -57,7 +59,7 @@ class ChameleonCom:
         """
             Create a chameleon device instance
         """
-        self.serial_instance: Union[serial.Serial, None] = None
+        self.serial_instance: serial.Serial | None = None
         self.send_data_queue = queue.Queue()
         self.wait_response_map = {}
         self.event_closing = threading.Event()
@@ -114,7 +116,7 @@ class ChameleonCom:
             raise NotOpenException("Please call open() function to start device.")
 
     @staticmethod
-    def lrc_calc(array: Union[bytearray, bytes]) -> int:
+    def lrc_calc(array: bytearray | bytes) -> int:
         """
             Calc lrc and auto cut byte.
 
@@ -298,7 +300,7 @@ class ChameleonCom:
                         self.wait_response_map[task_cmd]['is_timeout'] = True
             time.sleep(THREAD_BLOCKING_TIMEOUT)
 
-    def make_data_frame_bytes(self, cmd: int, data: Union[bytes, None] = None, status: int = 0) -> bytes:
+    def make_data_frame_bytes(self, cmd: int, data: bytes | None = None, status: int = 0) -> bytes:
         """
             Make data frame
 
@@ -316,7 +318,7 @@ class ChameleonCom:
         frame[struct.calcsize(f'!BBHHHB{len(data)}s')] = self.lrc_calc(frame[:struct.calcsize(f'!BBHHHB{len(data)}s')])
         return bytes(frame)
 
-    def send_cmd_auto(self, cmd: int, data: Union[bytes, None] = None, status: int = 0, callback=None, timeout: int = 3,
+    def send_cmd_auto(self, cmd: int, data: bytes | None = None, status: int = 0, callback=None, timeout: int = 3,
                       close: bool = False):
         """
             Send cmd to device
@@ -349,7 +351,7 @@ class ChameleonCom:
             task['callback'] = callback
         self.send_data_queue.put(task)
 
-    def send_cmd_sync(self, cmd: int, data: Union[bytes, None] = None, status: int = 0,
+    def send_cmd_sync(self, cmd: int, data: bytes | None = None, status: int = 0,
                       timeout: int = 3) -> Response:
         """
             Send cmd to device, and block receive data.

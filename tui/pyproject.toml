@@ -40,7 +40,7 @@ test = [
     ]
 
 [project.scripts]
-chameleon = "chameleon:main"
+chameleon = "chameleon.interface:run"
 
 [project.urls]
 repository = "https://github.com/ChameleonUltra/ChameleonUltra"

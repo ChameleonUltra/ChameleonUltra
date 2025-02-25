@@ -1,13 +1,16 @@
 import argparse
-import colorama
+
+from collections.abc import Callable
 from functools import wraps
+from pathlib import Path
+
 # once Python3.10 is mainstream, we can replace Union[str, None] by str | None
-from typing import Union, Callable, Any
-from prompt_toolkit.completion import Completer, NestedCompleter, WordCompleter
-from prompt_toolkit.completion.base import Completion
-from prompt_toolkit.document import Document
+from typing import Any
+
+import colorama
 
 from chameleon.chameleon_enum import Status
+
 
 # Colorama shorthands
 CR = colorama.Fore.RED
@@ -45,7 +48,7 @@ class ArgumentParserNoExit(argparse.ArgumentParser):
         self.description = "Please enter correct parameters"
         self.help_requested = False
 
-    def exit(self, status: int = 0, message: Union[str, None] = None):
+    def exit(self, status: int = 0, message: str | None = None):
         if message:
             raise ParserExitIntercept(message)
 
@@ -102,6 +105,9 @@ class ArgumentParserNoExit(argparse.ArgumentParser):
         print('')
         self.help_requested = True
 
+
+default_cwd = Path.cwd() / Path(__file__).with_name("bin")
+
 def print_mem_dump(bindata, blocksize):
 
     hexadecimal_len = blocksize*3+1
@@ -118,7 +124,7 @@ def print_mem_dump(bindata, blocksize):
         print(f"[=] {blk_index:3} | {hexstr.upper()} | {asciistr} ")
         blk_index += 1
 
-def expect_response(accepted_responses: Union[int, list[int]]) -> Callable[..., Any]:
+def expect_response(accepted_responses: int | list[int]) -> Callable[..., Any]:
     """
     Decorator for wrapping a Chameleon CMD function to check its response
     for expected return codes and throwing an exception otherwise
@@ -144,194 +150,9 @@ def expect_response(accepted_responses: Union[int, list[int]]) -> Callable[..., 
     return decorator
 
 
-class CLITree:
-    """
-    Class holding a
-
-    :param name: Name of the command (e.g. "set")
-    :param help_text: Hint displayed for the command
-    :param fullname: Full name of the command that includes previous commands (e.g. "hw settings animation")
-    :param cls: A BaseCLIUnit instance handling the command
-    """
-
-    def __init__(self, name: str = "", help_text: Union[str, None] = None, fullname: Union[str, None] = None,
-                 children: Union[list["CLITree"], None] = None, cls=None, root=False) -> None:
-        self.name = name
-        self.help_text = help_text
-        self.fullname = fullname if fullname else name
-        self.children = children if children else list()
-        self.cls = cls
-        self.root = root
-        if self.help_text is None and not root:
-            assert self.cls is not None
-            parser = self.cls().args_parser()
-            assert parser is not None
-            self.help_text = parser.description
-
-    def subgroup(self, name, help_text=None):
-        """
-        Create a child command group
-
-        :param name: Name of the command group
-        :param help_text: Hint displayed for the group
-        """
-        child = CLITree(
-            name=name,
-            fullname=f'{self.fullname} {name}' if not self.root else f'{name}',
-            help_text=help_text)
-        self.children.append(child)
-        return child
-
-    def command(self, name):
-        """
-        Create a child command
-
-        :param name: Name of the command
-        """
-        def decorator(cls):
-            self.children.append(CLITree(
-                name=name,
-                fullname=f'{self.fullname} {name}' if not self.root else f'{name}',
-                cls=cls))
-            return cls
-        return decorator
-
-
-class CustomNestedCompleter(NestedCompleter):
-    """
-    Copy of the NestedCompleter class that accepts a CLITree object and
-    supports meta_dict for descriptions
-    """
-
-    def __init__(
-        self, options, ignore_case: bool = True, meta_dict: dict = {}
-    ) -> None:
-        self.options = options
-        self.ignore_case = ignore_case
-        self.meta_dict = meta_dict
-
-    def __repr__(self) -> str:
-        return f"CustomNestedCompleter({self.options!r}, ignore_case={self.ignore_case!r})"
-
-    @classmethod
-    def from_clitree(cls, node):
-        options = {}
-        meta_dict = {}
-
-        for child_node in node.children:
-            if child_node.cls:
-                # CLITree is a standalone command with arguments
-                options[child_node.name] = ArgparseCompleter(
-                    child_node.cls().args_parser())
-            else:
-                # CLITree is a command group
-                options[child_node.name] = cls.from_clitree(child_node)
-                meta_dict[child_node.name] = child_node.help_text
-
-        return cls(options, meta_dict=meta_dict)
-
-    def get_completions(self, document, complete_event):
-        # Split document.
-        text = document.text_before_cursor.lstrip()
-        stripped_len = len(document.text_before_cursor) - len(text)
-
-        # If there is a space, check for the first term, and use a sub_completer.
-        if " " in text:
-            first_term = text.split()[0]
-            completer = self.options.get(first_term)
-
-            # If we have a sub completer, use this for the completions.
-            if completer is not None:
-                remaining_text = text[len(first_term):].lstrip()
-                move_cursor = len(text) - len(remaining_text) + stripped_len
-
-                new_document = Document(
-                    remaining_text,
-                    cursor_position=document.cursor_position - move_cursor,
-                )
-
-                yield from completer.get_completions(new_document, complete_event)
-
-        # No space in the input: behave exactly like `WordCompleter`.
-        else:
-            completer = WordCompleter(
-                list(self.options.keys()), ignore_case=self.ignore_case, meta_dict=self.meta_dict
-            )
-            yield from completer.get_completions(document, complete_event)
-
-
-class ArgparseCompleter(Completer):
-    """
-    Completer instance for autocompletion of ArgumentParser arguments
-
-    :param parser: ArgumentParser instance
-    """
-
-    def __init__(self, parser) -> None:
-        self.parser: ArgumentParserNoExit = parser
-
-    def check_tokens(self, parsed, unparsed):
-        suggestions = {}
-
-        def check_arg(tokens):
-            return tokens and tokens[0].startswith('-')
-
-        if not parsed and not unparsed:
-            # No tokens detected, just show all flags
-            for action in self.parser._actions:
-                for opt in action.option_strings:
-                    suggestions[opt] = action.help
-            return [], [], suggestions
-
-        token = unparsed.pop(0)
-
-        for action in self.parser._actions:
-            if any(opt == token for opt in action.option_strings):
-                # Argument fully matches the token
-                parsed.append(token)
-
-                if action.choices:
-                    # Autocomplete with choices
-                    if unparsed:
-                        # Autocomplete values
-                        value = unparsed.pop(0)
-                        for choice in action.choices:
-                            if str(choice).startswith(value):
-                                suggestions[str(choice)] = None
-
-                        parsed.append(value)
-
-                        if check_arg(unparsed):
-                            parsed, unparsed, suggestions = self.check_tokens(
-                                parsed, unparsed)
-
-                    else:
-                        # Show all possible values
-                        for choice in action.choices:
-                            suggestions[str(choice)] = None
-
-                    break
-                else:
-                    # No choices, process further arguments
-                    if check_arg(unparsed):
-                        parsed, unparsed, suggestions = self.check_tokens(
-                            parsed, unparsed)
-                    break
-            elif any(opt.startswith(token) for opt in action.option_strings):
-                for opt in action.option_strings:
-                    if opt.startswith(token):
-                        suggestions[opt] = action.help
-
-        if suggestions:
-            unparsed.insert(0, token)
-
-        return parsed, unparsed, suggestions
-
-    def get_completions(self, document, complete_event):
-        text = document.text_before_cursor
-        word_before_cursor = document.text_before_cursor.split(' ')[-1]
-
-        _, _, suggestions = self.check_tokens(list(), text.split())
-
-        for key, suggestion in suggestions.items():
-            yield Completion(key, -len(word_before_cursor), display=key, display_meta=suggestion)
+def color_string(*args):
+    result = []
+    for arg in args:
+        result.append(f"{arg[0]}{arg[1]}")
+    result.append(C0)
+    return "".join(result)
