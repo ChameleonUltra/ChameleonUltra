@@ -13,6 +13,7 @@ from chameleon.chameleon_utils import (
     CR,
     CY,
     UnexpectedResponseError,
+    color_string,
 )
 from chameleon.commands.util import (
     ArgumentParserNoExit,
@@ -38,12 +39,12 @@ class HWSlotList(DeviceRequiredUnit):
     def get_slot_name(self, slot, sense):
         try:
             name = self.cmd.get_slot_tag_nick(slot, sense)
-            return {'baselen': len(name), 'metalen': len(CC+C0), 'name': f'{CC}{name}{C0}'}
+            return {'baselen': len(name), 'metalen': len(CC+C0), 'name': color_string((CC, name))}
         except UnexpectedResponseError:
             return {'baselen': 0, 'metalen': 0, 'name': ''}
         except UnicodeDecodeError:
             name = "UTF8 Err"
-            return {'baselen': len(name), 'metalen': len(CC+C0), 'name': f'{CC}{name}{C0}'}
+            return {'baselen': len(name), 'metalen': len(CC+C0), 'name': color_string((CC, name))}
 
     def on_exec(self, args: argparse.Namespace):
         slotinfo = self.cmd.get_slot_info()
@@ -60,18 +61,20 @@ class HWSlotList(DeviceRequiredUnit):
             slotnames.append({'hf': hfn, 'lf': lfn})
         for slot in SlotNumber:
             fwslot = SlotNumber.to_fw(slot)
+            status = f"({color_string((CG, 'active'))})" if slot == selected else ""
             hf_tag_type = TagSpecificType(slotinfo[fwslot]['hf'])
             lf_tag_type = TagSpecificType(slotinfo[fwslot]['lf'])
-            print(f' - {f"Slot {slot}:":{4+maxnamelength+1}}'
-                  f'{f"({CG}active{C0})" if slot == selected else ""}')
+            print(f' - {f"Slot {slot}:":{4+maxnamelength+1}} {status}')
 
             # HF
             field_length = maxnamelength+slotnames[fwslot]["hf"]["metalen"]+1
+            status = f"({color_string((CR, 'disabled'))})" if not enabled[fwslot]["hf"] else ""
             print(f'   HF: '
                   f'{slotnames[fwslot]["hf"]["name"]:{field_length}}', end='')
-            print(f'{f"({CR}disabled{C0}) " if not enabled[fwslot]["hf"] else ""}', end='')
+            print(status, end='')
             if hf_tag_type != TagSpecificType.UNDEFINED:
-                print(f"{CY if enabled[fwslot]['hf'] else C0}{hf_tag_type}{C0}")
+                color = CY if enabled[fwslot]['hf'] else C0
+                print(color_string((color, hf_tag_type)))
             else:
                 print("undef")
             if (not args.short) and enabled[fwslot]['hf'] and hf_tag_type != TagSpecificType.UNDEFINED:
@@ -84,12 +87,12 @@ class HWSlotList(DeviceRequiredUnit):
                 sak = anti_coll_data['sak']
                 ats = anti_coll_data['ats']
                 # print('    - ISO14443A emulator settings:')
-                print(f'      {"UID:":40}{CY}{uid.hex().upper()}{C0}')
-                print(f'      {"ATQA:":40}{CY}{atqa.hex().upper()} '
-                      f'(0x{int.from_bytes(atqa, byteorder="little"):04x}){C0}')
-                print(f'      {"SAK:":40}{CY}{sak.hex().upper()}{C0}')
+                atqa_hex_le = f"(0x{int.from_bytes(atqa, byteorder='little'):04x})"
+                print(f'      {"UID:":40}{color_string((CY, uid.hex().upper()))}')
+                print(f'      {"ATQA:":40}{color_string((CY, f"{atqa.hex().upper()} {atqa_hex_le}"))}')
+                print(f'      {"SAK:":40}{color_string((CY, sak.hex().upper()))}')
                 if len(ats) > 0:
-                    print(f'      {"ATS:":40}{CY}{ats.hex().upper()}{C0}')
+                    print(f'      {"ATS:":40}{color_string((CY, ats.hex().upper()))}')
                 if hf_tag_type in [
                     TagSpecificType.MIFARE_Mini,
                     TagSpecificType.MIFARE_1024,
@@ -98,31 +101,35 @@ class HWSlotList(DeviceRequiredUnit):
                 ]:
                     config = self.cmd.mf1_get_emulator_config()
                     # print('    - Mifare Classic emulator settings:')
+                    enabled_str = color_string((CG, "enabled"))
+                    disabled_str = color_string((CR, "disabled"))
                     print(
                         f'      {"Gen1A magic mode:":40}'
-                        f'{f"{CG}enabled{C0}" if config["gen1a_mode"] else f"{CR}disabled{C0}"}')
+                        f'{enabled_str if config["gen1a_mode"] else disabled_str}')
                     print(
                         f'      {"Gen2 magic mode:":40}'
-                        f'{f"{CG}enabled{C0}" if config["gen2_mode"] else f"{CR}disabled{C0}"}')
+                        f'{enabled_str if config["gen2_mode"] else disabled_str}')
                     print(
                         f'      {"Use anti-collision data from block 0:":40}'
-                        f'{f"{CG}enabled{C0}" if config["block_anti_coll_mode"] else f"{CR}disabled{C0}"}')
+                        f'{enabled_str if config["block_anti_coll_mode"] else disabled_str}')
                     try:
-                        print(f'      {"Write mode:":40}{CY}'
-                              f'{MifareClassicWriteMode(config["write_mode"])}{C0}')
+                        print(f'      {"Write mode:":40}'
+                              f'{color_string((CY, MifareClassicWriteMode(config["write_mode"])))}')
                     except ValueError:
-                        print(f'      {"Write mode:":40}{CR}invalid value!{C0}')
+                        print(f'      {"Write mode:":40}{color_string((CR, "invalid value!"))}')
                     print(
                         f'      {"Log (mfkey32) mode:":40}'
-                        f'{f"{CG}enabled{C0}" if config["detection"] else f"{CR}disabled{C0}"}')
+                        f'{enabled_str if config["detection"] else disabled_str}')
 
             # LF
             field_length = maxnamelength+slotnames[fwslot]["lf"]["metalen"]+1
+            status = f"({color_string((CR, 'disabled'))})" if not enabled[fwslot]["lf"] else ""
             print(f'   LF: '
                   f'{slotnames[fwslot]["lf"]["name"]:{field_length}}', end='')
-            print(f'{f"({CR}disabled{C0}) " if not enabled[fwslot]["lf"] else ""}', end='')
+            print(status, end='')
             if lf_tag_type != TagSpecificType.UNDEFINED:
-                print(f"{CY if enabled[fwslot]['lf'] else C0}{lf_tag_type}{C0}")
+                color = CY if enabled[fwslot]['lf'] else C0
+                print(color_string((color, lf_tag_type)))
             else:
                 print("undef")
             if (not args.short) and enabled[fwslot]['lf'] and lf_tag_type != TagSpecificType.UNDEFINED:
@@ -131,7 +138,7 @@ class HWSlotList(DeviceRequiredUnit):
                     current = slot
                 id = self.cmd.em410x_get_emu_id()
                 # print('    - EM 410X emulator settings:')
-                print(f'      {"ID:":40}{CY}{id.hex().upper()}{C0}')
+                print(f'      {"ID:":40}{color_string((CY, id.hex().upper()))}')
         if current != selected:
             self.cmd.set_active_slot(selected)
 

@@ -7,10 +7,10 @@ from chameleon.chameleon_enum import (
     TagSpecificType,
 )
 from chameleon.chameleon_utils import (
-    C0,
     CG,
     CR,
     CY,
+    color_string,
 )
 from chameleon.commands.util import (
     ArgumentParserNoExit,
@@ -37,9 +37,9 @@ class HFMFUERCNT(DeviceRequiredUnit):
         value, no_tearing = self.cmd.mfu_read_emu_counter_data(args.counter)
         print(f" - Value: {value:06x}")
         if no_tearing:
-            print(f" - Tearing: {CG}not set{C0}")
+            print(f" - Tearing: {color_string((CG, 'not set'))}")
         else:
-            print(f" - Tearing: {CR}set{C0}")
+            print(f" - Tearing: {color_string((CR, 'set'))}")
 
 
 @mfu.command('ewcnt')
@@ -54,7 +54,7 @@ class HFMFUEWCNT(DeviceRequiredUnit):
 
     def on_exec(self, args: argparse.Namespace):
         if args.value > 0xFFFFFF:
-            print(f"{CR}Counter value {args.value:#x} is too large.{C0}")
+            print(color_string((CR, f"Counter value {args.value:#x} is too large.")))
             return
 
         self.cmd.mfu_write_emu_counter_data(args.counter, args.value, args.reset_tearing)
@@ -109,7 +109,7 @@ class HFMFURDPG(MFUAuthArgsUnit):
             except:
                 # we may lose the tag again here
                 pass
-            print(f" {CR}- Auth failed{C0}")
+            print(color_string((CR, " - Auth failed")))
 
 
 @mfu.command('wrpg')
@@ -128,7 +128,7 @@ class HFMFUWRPG(MFUAuthArgsUnit):
 
         data = args.data
         if len(data) != 4:
-            print(f"{CR}Page data should be a 4 byte (8 character) hex string{C0}")
+            print(color_string((CR, "Page data should be a 4 byte (8 character) hex string")))
             return
 
         options = {
@@ -165,7 +165,7 @@ class HFMFUWRPG(MFUAuthArgsUnit):
             if resp[0] == 0x0A:
                 print(" - Ok")
             else:
-                print(f"{CR}Write failed ({resp[0]:#04x}).{C0}")
+                print(color_string((CR, f"Write failed ({resp[0]:#04x}).")))
         else:
             # send a command just to disable the field. use read to avoid corrupting the data
             try:
@@ -173,7 +173,7 @@ class HFMFUWRPG(MFUAuthArgsUnit):
             except:
                 # we may lose the tag again here
                 pass
-            print(f" {CR}- Auth failed{C0}")
+            print(color_string((CR, " - Auth failed")))
 
 
 @mfu.command('eview')
@@ -244,13 +244,13 @@ class HFMFUELOAD(DeviceRequiredUnit):
         nr_pages = self.cmd.mfu_get_emu_pages_count()
         size = nr_pages * 4
         if len(data) > size:
-            print(f"{CR}Dump file is too large for the current slot (expected {size} bytes).{C0}")
+            print(color_string((CR, f"Dump file is too large for the current slot (expected {size} bytes).")))
             return
         elif (len(data) % 4) > 0:
-            print(f"{CR}Dump file's length is not a multiple of 4 bytes.{C0}")
+            print(color_string((CR, "Dump file's length is not a multiple of 4 bytes.")))
             return
         elif len(data) < size:
-            print(f"{CY}Dump file is smaller than the current slot's memory ({len(data)} < {size}).{C0}")
+            print(color_string((CY, f"Dump file is smaller than the current slot's memory ({len(data)} < {size}).")))
         
         nr_pages = len(data) >> 2
         page = 0
@@ -392,7 +392,7 @@ class HFMFURCNT(MFUAuthArgsUnit):
             except:
                 # we may lose the tag again here
                 pass
-            print(f" {CR}- Auth failed{C0}")
+            print(color_string((CR, " - Auth failed")))
 
 
 @mfu.command('dump')
@@ -418,13 +418,14 @@ class HFMFUDUMP(MFUAuthArgsUnit):
         
         tags = self.cmd.hf14a_scan()
         if len(tags) > 1:
-            print(f'- {CR}Collision detected, leave only one tag.{C0}')
+            print(f"- {color_string((CR, 'Collision detected, leave only one tag.'))}")
             return
         elif len(tags) == 0:
-            print(f'- {CR}No tag detected.{C0}')
+            print(f"- {color_string((CR, 'No tag detected.'))}")
             return
         elif tags[0]['atqa'] != b'\x44\x00' or tags[0]['sak'] != b'\x00':
-            print(f'- {CR}Tag is not Mifare Ultralight compatible (ATQA {tags[0]["atqa"].hex()} SAK {tags[0]["sak"].hex()}).{C0}')
+            err = color_string((CR, f"Tag is not Mifare Ultralight compatible (ATQA {tags[0]['atqa'].hex()} SAK {tags[0]['sak'].hex()})."))
+            print(f"- {err}")
             return
         
         options = {
@@ -488,7 +489,7 @@ class HFMFUDUMP(MFUAuthArgsUnit):
                     # Invalid command returning a NAK means that's some old type of NTAG.
                     self.cmd.hf14a_raw(options=options, resp_timeout_ms=100, data=struct.pack('!B', 0xFF))
 
-                    print(f' - {CY}Tag is likely NTAG 20x, reading until first error.{C0}')
+                    print(color_string((CY, "Tag is likely NTAG 20x, reading until first error.")))
                     stop_page = 256
                 except:
                     # Regular Ultralight
@@ -502,7 +503,8 @@ class HFMFUDUMP(MFUAuthArgsUnit):
                 print(f' - Detected tag type as {tag_name}.')
 
             if stop_page is None:
-                print(f' - {CY}Couldn\'t autodetect the expected card size, reading until first error.{C0}')
+                err_str = "Couldn't autodetect the expected card size, reading until first error."
+                print(f"- {color_string((CY, err_str))}")
                 stop_page = 256
         
         needs_stop = False
@@ -522,7 +524,7 @@ class HFMFUDUMP(MFUAuthArgsUnit):
         
         # this handles auth failure
         if needs_stop:
-            print(f" - {CR}Auth failed{C0}")
+            print(color_string((CR, " - Auth failed")))
             if fd is not None:
                 fd.close()
                 fd = None
@@ -566,9 +568,9 @@ class HFMFUDUMP(MFUAuthArgsUnit):
                     fd.write(data)
         
         if needs_stop and stop_page != 256:
-            print(f' - {CY}Dump is shorter than expected.{C0}')
+            print(f"- {color_string((CY, 'Dump is shorter than expected.'))}")
         if args.file != '':
-            print(f" - {CG}Dump written in {args.file}.{C0}")
+            print(f"- {color_string((CG, f'Dump written in {args.file}.'))}")
 
     def on_exec(self, args: argparse.Namespace):
         param = self.get_param(args)
@@ -664,13 +666,13 @@ class HFMFUEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequired
             aux_data_changed = True
 
             if len(args.set_version) != 8:
-                print(f"{CR}Version data should be 8 bytes long.{C0}")
+                print(color_string((CR, "Version data should be 8 bytes long.")))
                 return
             
             try:
                 self.cmd.mf0_ntag_set_version_data(args.set_version)
             except:
-                print(f"{CR}Tag type does not support GET_VERSION command.{C0}")
+                print(color_string((CR, "Tag type does not support GET_VERSION command.")))
                 return
 
         if args.set_signature is not None:
@@ -678,13 +680,13 @@ class HFMFUEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequired
             aux_data_changed = True
 
             if len(args.set_signature) != 32:
-                print(f"{CR}Signature data should be 32 bytes long.{C0}")
+                print(color_string((CR, "Signature data should be 32 bytes long.")))
                 return
             
             try:
                 self.cmd.mf0_ntag_set_signature_data(args.set_signature)
             except:
-                print(f"{CR}Tag type does not support READ_SIG command.{C0}")
+                print(color_string((CR, "Tag type does not support READ_SIG command.")))
                 return
         
         if args.reset_auth_cnt:
@@ -697,7 +699,7 @@ class HFMFUEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequired
         # collect current settings
         anti_coll_data = self.cmd.hf14a_get_anti_coll_data()
         if len(anti_coll_data) == 0:
-            print(f"{CR}Slot {self.slot_num} does not contain any HF 14A config{C0}")
+            print(color_string((CR, f"Slot {self.slot_num} does not contain any HF 14A config")))
             return
         uid = anti_coll_data['uid']
         atqa = anti_coll_data['atqa']
@@ -717,7 +719,7 @@ class HFMFUEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequired
             TagSpecificType.NTAG_215,
             TagSpecificType.NTAG_216,
         ]:
-            print(f"{CR}Slot {self.slot_num} not configured as MIFARE Ultralight / NTAG{C0}")
+            print(color_string((CR, f"Slot {self.slot_num} not configured as MIFARE Ultralight / NTAG")))
             return
         change_requested, change_done, uid, atqa, sak, ats = self.update_hf14a_anticoll(args, uid, atqa, sak, ats)
 
@@ -735,26 +737,26 @@ class HFMFUEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequired
         if change_done or aux_data_changed:
             print(' - MFU/NTAG Emulator settings updated')
         if not (change_requested or aux_data_change_requested):
-            print(f'- {"Type:":40}{CY}{hf_tag_type}{C0}')
-            print(f'- {"UID:":40}{CY}{uid.hex().upper()}{C0}')
-            print(f'- {"ATQA:":40}{CY}{atqa.hex().upper()} '
-                  f'(0x{int.from_bytes(atqa, byteorder="little"):04x}){C0}')
-            print(f'- {"SAK:":40}{CY}{sak.hex().upper()}{C0}')
+            atqa_string = f"{atqa.hex().upper()} (0x{int.from_bytes(atqa, byteorder='little'):04x})"
+            print(f'- {"Type:":40}{color_string((CY, hf_tag_type))}')
+            print(f'- {"UID:":40}{color_string((CY, uid.hex().upper()))}')
+            print(f'- {"ATQA:":40}{color_string((CY, atqa_string))}')
+            print(f'- {"SAK:":40}{color_string((CY, sak.hex().upper()))}')
             if len(ats) > 0:
-                print(f'- {"ATS:":40}{CY}{ats.hex().upper()}{C0}')
+                print(f'- {"ATS:":40}{color_string((CY, ats.hex().upper()))}')
             if magic_mode: 
-                print(f'- {"UID Magic:":40}{CY}enabled{C0}')
+                print(f'- {"UID Magic:":40}{color_string((CY, "enabled"))}')
             else:
-                print(f'- {"UID Magic:":40}{CY}disabled{C0}')
+                print(f'- {"UID Magic:":40}{color_string((CY, "disabled"))}')
             
             try:
                 version = self.cmd.mf0_ntag_get_version_data()
-                print(f'- {"Version:":40}{CY}{version.hex().upper()}{C0}')
+                print(f'- {"Version:":40}{color_string((CY, version.hex().upper()))}')
             except:
                 pass
             
             try:
                 signature = self.cmd.mf0_ntag_get_signature_data()
-                print(f'- {"Signature:":40}{CY}{signature.hex().upper()}{C0}')
+                print(f'- {"Signature:":40}{color_string((CY, signature.hex().upper()))}')
             except:
                 pass

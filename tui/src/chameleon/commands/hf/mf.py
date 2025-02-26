@@ -25,6 +25,7 @@ from chameleon.chameleon_utils import (
     CY,
     ArgsParserError,
     UnexpectedResponseError,
+    color_string,
     default_cwd,
     print_mem_dump,
 )
@@ -153,7 +154,7 @@ class HFMFNested(ReaderRequiredUnit):
         """
         # check nt level, we can run static or nested auto...
         nt_level = self.cmd.mf1_detect_prng()
-        print(f" - NT vulnerable: {CY}{ self.from_nt_level_code_to_str(nt_level) }{C0}")
+        print(f" - NT vulnerable: {color_string((CY, self.from_nt_level_code_to_str(nt_level)))}")
         if nt_level == 2:
             print(" [!] HardNested has not been implemented yet.")
             return None
@@ -224,14 +225,14 @@ class HFMFNested(ReaderRequiredUnit):
         # default to A
         type_target = MfcKeyType.B if args.tb else MfcKeyType.A
         if block_known == block_target and type_known == type_target:
-            print(f"{CR}Target key already known{C0}")
+            print(color_string((CR, "Target key already known")))
             return
-        print(f" - {C0}Nested recover one key running...{C0}")
+        print(f" - {color_string((C0, 'Nested recover one key running...'))}")
         key = self.recover_a_key(block_known, type_known, key_known_bytes, block_target, type_target)
         if key is None:
-            print(f"{CY}No key found, you can retry.{C0}")
+            print(color_string((CY, "No key found, you can retry.")))
         else:
-            print(f" - Block {block_target} Type {type_target.name} Key Found: {CG}{key}{C0}")
+            print(f" - Block {block_target} Type {type_target.name} Key Found: {color_string((CG, key))}")
         return
 
 
@@ -325,8 +326,8 @@ class HFMFFCHK(ReaderRequiredUnit):
         parser.add_argument('--key', dest='import_key', type=argparse.FileType('rb'), help='Read keys from .key format file')
         parser.add_argument('--dic', dest='import_dic', type=argparse.FileType('r', encoding='utf8'), help='Read keys from .dic format file')
 
-        parser.add_argument('--export-key', type=argparse.FileType('wb'), help=f'Export result as .key format, file will be {CR}OVERWRITTEN{C0} if exists')
-        parser.add_argument('--export-dic', type=argparse.FileType('w', encoding='utf8'), help=f'Export result as .dic format, file will be {CR}OVERWRITTEN{C0} if exists')
+        parser.add_argument('--export-key', type=argparse.FileType('wb'), help=f'Export result as .key format, file will be {color_string((CR, "OVERWRITTEN"))} if exists')
+        parser.add_argument('--export-dic', type=argparse.FileType('w', encoding='utf8'), help=f'Export result as .dic format, file will be {color_string((CR, "OVERWRITTEN"))} if exists')
 
         parser.add_argument('-m', '--mask', help='Which sectorKey to be skip, 1 bit per sectorKey. `0b1` represent to skip to check. (in hex[20] format)', type=str, default='00000000000000000000', metavar='<hex>')
 
@@ -339,15 +340,15 @@ class HFMFFCHK(ReaderRequiredUnit):
         for i in range(0, len(keys), chunkSize):
             # print("mask = {}".format(mask.hex(sep=' ', bytes_per_sep=1)))
             chunkKeys = keys[i:i+chunkSize]
-            print(f' - progress of checking keys... {CY}{i}{C0} / {len(keys)} ({CY}{100 * i / len(keys):.1f}{C0} %)')
+            print(f' - progress of checking keys... {color_string((CY, i))} / {len(keys)} ({color_string((CY, f"{100 * i / len(keys):.1f}"))} %)')
             resp = self.cmd.mf1_check_keys_of_sectors(mask, chunkKeys)
             # print(resp)
 
             if resp["status"] != Status.HF_TAG_OK:
-                print(f' - check interrupted, reason: {CR}{str(Status(resp["status"]))}{C0}')
+                print(f' - check interrupted, reason: {color_string((CR, Status(resp["status"])))}')
                 break
             elif 'sectorKeys' not in resp:
-                print(f' - check interrupted, reason: {CG}All sectorKey is found or masked{C0}')
+                print(f' - check interrupted, reason: {color_string((CG, "All sectorKey is found or masked"))}')
                 break
 
             for j in range(10):
@@ -364,7 +365,7 @@ class HFMFFCHK(ReaderRequiredUnit):
         # keys from args
         for key in args.keys:
             if not re.match(r'^[a-fA-F0-9]{12}$', key):
-                print(f' - {CR}Key should in hex[12] format, invalid key is ignored{C0}, key = "{key}"')
+                print(f' - {color_string((CR, "Key should in hex[12] format, invalid key is ignored"))}, key = "{key}"')
                 continue
             keys.add(bytes.fromhex(key))
 
@@ -382,18 +383,18 @@ class HFMFFCHK(ReaderRequiredUnit):
                 elif re.match(r'^[a-fA-F0-9]{12}$', key): # take only this key format
                     keys.add(bytes.fromhex(key))
                 else: # in case of another format, a conversion is needed
-                    print(f' - {CR}Key should in hex[12] format, invalid key is ignored{C0}, key = "{key}"')
+                    print(f' - {color_string((CR, "Key should in hex[12] format, invalid key is ignored"))}, key = "{key}"')
                 continue
 
         if len(keys) == 0:
-            print(f' - {CR}No keys{C0}')
+            print(f' - {color_string((CR, "No keys"))}')
             return
 
-        print(f" - loaded {CG}{len(keys)}{C0} keys")
+        print(f" - loaded {color_string((CG, len(keys)))} keys")
 
         # mask
         if not re.match(r'^[a-fA-F0-9]{1,20}$', args.mask):
-            print(f' - {CR}mask should in hex[20] format{C0}, mask = "{args.mask}"')
+            print(f' - {color_string((CR, "mask should in hex[20] format"))}, mask = "{args.mask}"')
             return
         mask = bytearray.fromhex(f'{args.mask:0<20}')
         for i in range(args.maxSectors, 40):
@@ -404,35 +405,41 @@ class HFMFFCHK(ReaderRequiredUnit):
         sectorKeys = self.check_keys(mask, list(keys))
         endedAt = datetime.now()
         duration = endedAt - startedAt
-        print(f" - elapsed time: {CY}{duration.total_seconds():.3f}s{C0}")
+        print(f" - elapsed time: {color_string((CY, f'{duration.total_seconds():.3f}s'))}")
 
         if args.export_key is not None:
             unknownkey = bytes(6)
             for sectorNo in range(args.maxSectors):
                 args.export_key.write(sectorKeys.get(2 * sectorNo, unknownkey))
                 args.export_key.write(sectorKeys.get(2 * sectorNo + 1, unknownkey))
-            print(f" - result exported to: {CG}{args.export_key.name}{C0} (as .key format)")
+            print(f" - result exported to: {color_string((CG, args.export_key.name))} (as .key format)")
 
         if args.export_dic is not None:
             uniq_result = set(sectorKeys.values())
             for key in uniq_result:
                 args.export_dic.write(key.hex().upper() + '\n')
-            print(f" - result exported to: {CG}{args.export_dic.name}{C0} (as .dic format)")
+            print(f" - result exported to: {color_string((CG, args.export_dic.name))} (as .dic format)")
 
         # print sectorKeys
-        print(f"\n - {CG}result of key checking:{C0}\n")
+        print(f"\n - {color_string((CG, 'result of key checking:'))}\n")
         print("-----+-----+--------------+---+--------------+----")
         print(" Sec | Blk | key A        |res| key B        |res ")
         print("-----+-----+--------------+---+--------------+----")
         for sectorNo in range(args.maxSectors):
             blk = (sectorNo * 4 + 3) if sectorNo < 32 else (sectorNo * 16 - 369)
             keyA = sectorKeys.get(2 * sectorNo, None)
-            keyA = f"{CG}{keyA.hex().upper()}{C0} | {CG}1{C0}" if keyA else f"{CR}------------{C0} | {CR}0{C0}"
+            if keyA:
+                keyA = f"{color_string((CG, keyA.hex().upper()))} | {color_string((CG, '1'))}"
+            else:
+                keyA = f"{color_string((CR, '------------'))} | {color_string((CR, '0'))}"
             keyB = sectorKeys.get(2 * sectorNo + 1, None)
-            keyB = f"{CG}{keyB.hex().upper()}{C0} | {CG}1{C0}" if keyB else f"{CR}------------{C0} | {CR}0{C0}"
-            print(f" {CY}{sectorNo:03d}{C0} | {blk:03d} | {keyA} | {keyB} ")
+            if keyB:
+                keyB = f"{color_string((CG, keyB.hex().upper()))} | {color_string((CG, '1'))}"
+            else:
+                keyB = f"{color_string((CR, '------------'))} | {color_string((CR, '0'))}"
+            print(f" {color_string((CY, f'{sectorNo:03d}'))} | {blk:03d} | {keyA} | {keyB} ")
         print("-----+-----+--------------+---+--------------+----")
-        print(f"( {CR}0{C0}: Failed, {CG}1{C0}: Success )\n\n")
+        print(f"( {color_string((CR, '0'))}: Failed, {color_string((CG, '1'))}: Success )\n\n")
 
 
 @mf.command('rdbl')
@@ -464,9 +471,9 @@ class HFMFWRBL(MF1AuthArgsUnit):
         data = bytearray.fromhex(args.data)
         resp = self.cmd.mf1_write_one_block(param.block, param.type, param.key, data)
         if resp:
-            print(f" - {CG}Write done.{C0}")
+            print(f" - {color_string((CG, 'Write done.'))}")
         else:
-            print(f" - {CR}Write fail.{C0}")
+            print(f" - {color_string((CR, 'Write fail.'))}")
 
 @mf.command('view')
 class HFMFView(MF1AuthArgsUnit):
@@ -593,12 +600,12 @@ class HFMFVALUE(ReaderRequiredUnit):
         val1, val2, val3, adr1, adr2, adr3, adr4 = struct.unpack("<iiiBBBB", resp)
         # print(f"{val1}, {val2}, {val3}, {adr1}, {adr2}, {adr3}, {adr4}")
         if (val1 != val3) or (val1 + val2 != -1):
-            print(f" - {CR}Invalid value of value block: {resp.hex()}{C0}")
+            print(f" - {color_string((CR, f'Invalid value of value block: {resp.hex()}'))}")
             return
         if (adr1 != adr3) or (adr2 != adr4) or (adr1 + adr2 != 0xFF):
-            print(f" - {CR}Invalid address of value block: {resp.hex()}{C0}")
+            print(f" - {color_string((CR, f'Invalid address of value block: {resp.hex()}'))}")
             return
-        print(f" - block[{block}] = {CG}{{ value: {val1}, adr: {adr1} }}{C0}")
+        print(f" - block[{block}] = {color_string((CG, f'{{ value: {val1}, adr: {adr1} }}'))}")
 
     def set_value(self, block, type, key, value):
         if value < -2147483647 or value > 2147483647:
@@ -607,10 +614,10 @@ class HFMFVALUE(ReaderRequiredUnit):
         data = struct.pack("<iiiBBBB", value, -value - 1, value, block, adr_inverted, block, adr_inverted)
         resp = self.cmd.mf1_write_one_block(block, type, key, data)
         if resp:
-            print(f" - {CG}Set done.{C0}")
+            print(f" - {color_string((CG, 'Set done.'))}")
             self.get_value(block, type, key)
         else:
-            print(f" - {CR}Set fail.{C0}")
+            print(f" - {color_string((CR, 'Set fail.'))}")
 
     def inc_value(self, src_blk, src_type, src_key, value, dst_blk, dst_type, dst_key):
         if value < 0 or value > 2147483647:
@@ -621,10 +628,10 @@ class HFMFVALUE(ReaderRequiredUnit):
             dst_blk, dst_type, dst_key
         )
         if resp:
-            print(f" - {CG}Increment done.{C0}")
+            print(f" - {color_string((CG, 'Increment done.'))}")
             self.get_value(dst_blk, dst_type, dst_key)
         else:
-            print(f" - {CR}Increment fail.{C0}")
+            print(f" - {color_string((CR, 'Increment fail.'))}")
     
     def dec_value(self, src_blk, src_type, src_key, value, dst_blk, dst_type, dst_key):
         if value < 0 or value > 2147483647:
@@ -635,10 +642,10 @@ class HFMFVALUE(ReaderRequiredUnit):
             dst_blk, dst_type, dst_key
         )
         if resp:
-            print(f" - {CG}Decrement done.{C0}")
+            print(f" - {color_string((CG, 'Decrement done.'))}")
             self.get_value(dst_blk, dst_type, dst_key)
         else:
-            print(f" - {CR}Decrement fail.{C0}")
+            print(f" - {color_string((CR, 'Decrement fail.'))}")
 
     def res_value(self, src_blk, src_type, src_key, dst_blk, dst_type, dst_key):
         resp = self.cmd.mf1_manipulate_value_block(
@@ -647,10 +654,10 @@ class HFMFVALUE(ReaderRequiredUnit):
             dst_blk, dst_type, dst_key
         )
         if resp:
-            print(f" - {CG}Restore done.{C0}")
+            print(f" - {color_string((CG, 'Restore done.'))}")
             self.get_value(dst_blk, dst_type, dst_key)
         else:
-            print(f" - {CR}Restore fail.{C0}")
+            print(f" - {color_string((CR, 'Restore fail.'))}")
 
 
 @mf.command('elog')
@@ -914,7 +921,7 @@ class HFMFEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequiredU
         # collect current settings
         anti_coll_data = self.cmd.hf14a_get_anti_coll_data()
         if len(anti_coll_data) == 0:
-            print(f"{CR}Slot {self.slot_num} does not contain any HF 14A config{C0}")
+            print(f"{color_string((CR, f'Slot {self.slot_num} does not contain any HF 14A config'))}")
             return
         uid = anti_coll_data['uid']
         atqa = anti_coll_data['atqa']
@@ -929,7 +936,7 @@ class HFMFEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequiredU
             TagSpecificType.MIFARE_2048,
             TagSpecificType.MIFARE_4096,
         ]:
-            print(f"{CR}Slot {self.slot_num} not configured as MIFARE Classic{C0}")
+            print(f"{color_string((CR, f'Slot {self.slot_num} not configured as MIFARE Classic'))}")
             return
         mfc_config = self.cmd.mf1_get_emulator_config()
         gen1a_mode = mfc_config["gen1a_mode"]
@@ -945,7 +952,7 @@ class HFMFEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequiredU
                 self.cmd.mf1_set_gen1a_mode(gen1a_mode)
                 change_done = True
             else:
-                print(f'{CY}Requested gen1a already enabled{C0}')
+                print(f'{color_string((CY, "Requested gen1a already enabled"))}')
         elif args.disable_gen1a:
             change_requested = True
             if gen1a_mode:
@@ -953,7 +960,7 @@ class HFMFEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequiredU
                 self.cmd.mf1_set_gen1a_mode(gen1a_mode)
                 change_done = True
             else:
-                print(f'{CY}Requested gen1a already disabled{C0}')
+                print(f'{color_string((CY, "Requested gen1a already disabled"))}')
         if args.enable_gen2:
             change_requested = True
             if not gen2_mode:
@@ -961,7 +968,7 @@ class HFMFEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequiredU
                 self.cmd.mf1_set_gen2_mode(gen2_mode)
                 change_done = True
             else:
-                print(f'{CY}Requested gen2 already enabled{C0}')
+                print(f'{color_string((CY, "Requested gen2 already enabled"))}')
         elif args.disable_gen2:
             change_requested = True
             if gen2_mode:
@@ -969,7 +976,7 @@ class HFMFEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequiredU
                 self.cmd.mf1_set_gen2_mode(gen2_mode)
                 change_done = True
             else:
-                print(f'{CY}Requested gen2 already disabled{C0}')
+                print(f'{color_string((CY, "Requested gen2 already disabled"))}')
         if args.enable_block0:
             change_requested = True
             if not block_anti_coll_mode:
@@ -977,7 +984,7 @@ class HFMFEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequiredU
                 self.cmd.mf1_set_block_anti_coll_mode(block_anti_coll_mode)
                 change_done = True
             else:
-                print(f'{CY}Requested block0 anti-coll mode already enabled{C0}')
+                print(f'{color_string((CY, "Requested block0 anti-coll mode already enabled"))}')
         elif args.disable_block0:
             change_requested = True
             if block_anti_coll_mode:
@@ -985,7 +992,7 @@ class HFMFEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequiredU
                 self.cmd.mf1_set_block_anti_coll_mode(block_anti_coll_mode)
                 change_done = True
             else:
-                print(f'{CY}Requested block0 anti-coll mode already disabled{C0}')
+                print(f'{color_string((CY, "Requested block0 anti-coll mode already disabled"))}')
         if args.write is not None:
             change_requested = True
             new_write_mode = MifareClassicWriteMode[args.write]
@@ -994,7 +1001,7 @@ class HFMFEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequiredU
                 self.cmd.mf1_set_write_mode(write_mode)
                 change_done = True
             else:
-                print(f'{CY}Requested write mode already set{C0}')
+                print(f'{color_string((CY, "Requested write mode already set"))}')
         if args.enable_log:
             change_requested = True
             if not detection:
@@ -1002,7 +1009,7 @@ class HFMFEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequiredU
                 self.cmd.mf1_set_detection_enable(detection)
                 change_done = True
             else:
-                print(f'{CY}Requested logging of MFC authentication data already enabled{C0}')
+                print(f'{color_string((CY, "Requested logging of MFC authentication data already enabled"))}')
         elif args.disable_log:
             change_requested = True
             if detection:
@@ -1010,28 +1017,30 @@ class HFMFEConfig(SlotIndexArgsAndGoUnit, HF14AAntiCollArgsUnit, DeviceRequiredU
                 self.cmd.mf1_set_detection_enable(detection)
                 change_done = True
             else:
-                print(f'{CY}Requested logging of MFC authentication data already disabled{C0}')
+                print(f'{color_string((CY, "Requested logging of MFC authentication data already disabled"))}')
 
         if change_done:
             print(' - MF1 Emulator settings updated')
         if not change_requested:
-            print(f'- {"Type:":40}{CY}{hf_tag_type}{C0}')
-            print(f'- {"UID:":40}{CY}{uid.hex().upper()}{C0}')
-            print(f'- {"ATQA:":40}{CY}{atqa.hex().upper()} '
-                  f'(0x{int.from_bytes(atqa, byteorder="little"):04x}){C0}')
-            print(f'- {"SAK:":40}{CY}{sak.hex().upper()}{C0}')
+            enabled_str = color_string((CG, "enabled"))
+            disabled_str = color_string((CR, "disabled"))
+            atqa_string = f"{atqa.hex().upper()} (0x{int.from_bytes(atqa, byteorder='little'):04x})"
+            print(f'- {"Type:":40}{color_string((CY, hf_tag_type))}')
+            print(f'- {"UID:":40}{color_string((CY, uid.hex().upper()))}')
+            print(f'- {"ATQA:":40}{color_string((CY, atqa_string))}')
+            print(f'- {"SAK:":40}{color_string((CY, sak.hex().upper()))}')
             if len(ats) > 0:
-                print(f'- {"ATS:":40}{CY}{ats.hex().upper()}{C0}')
+                print(f'- {"ATS:":40}{color_string((CY, ats.hex().upper()))}')
             print(
-                f'- {"Gen1A magic mode:":40}{f"{CG}enabled{C0}" if gen1a_mode else f"{CR}disabled{C0}"}')
+                f'- {"Gen1A magic mode:":40}{f"{enabled_str}" if gen1a_mode else f"{disabled_str}"}')
             print(
-                f'- {"Gen2 magic mode:":40}{f"{CG}enabled{C0}" if gen2_mode else f"{CR}disabled{C0}"}')
+                f'- {"Gen2 magic mode:":40}{f"{enabled_str}" if gen2_mode else f"{disabled_str}"}')
             print(
                 f'- {"Use anti-collision data from block 0:":40}'
-                f'{f"{CG}enabled{C0}" if block_anti_coll_mode else f"{CR}disabled{C0}"}')
+                f'{f"{enabled_str}" if block_anti_coll_mode else f"{disabled_str}"}')
             try:
-                print(f'- {"Write mode:":40}{CY}{MifareClassicWriteMode(write_mode)}{C0}')
+                print(f'- {"Write mode:":40}{color_string((CY, MifareClassicWriteMode(write_mode)))}')
             except ValueError:
-                print(f'- {"Write mode:":40}{CR}invalid value!{C0}')
+                print(f'- {"Write mode:":40}{color_string((CR, "invalid value!"))}')
             print(
-                f'- {"Log (mfkey32) mode:":40}{f"{CG}enabled{C0}" if detection else f"{CR}disabled{C0}"}')
+                f'- {"Log (mfkey32) mode:":40}{f"{enabled_str}" if detection else f"{disabled_str}"}')

@@ -1,8 +1,8 @@
 import argparse
 
 from chameleon.chameleon_utils import (
-    C0,
     CG,
+    color_string,
 )
 from chameleon.commands.util import (
     ArgumentParserNoExit,
@@ -24,7 +24,7 @@ class LFEMRead(ReaderRequiredUnit):
 
     def on_exec(self, args: argparse.Namespace):
         id = self.cmd.em410x_scan()
-        print(f" - EM410x ID(10H): {CG}{id.hex()}{C0}")
+        print(f" - EM410x ID(10H): {color_string((CG, id.hex()))}")
 
 
 @em410x.command('write')

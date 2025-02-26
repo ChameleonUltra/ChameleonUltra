@@ -12,8 +12,8 @@ from chameleon.chameleon_enum import (
     Status,
 )
 from chameleon.chameleon_utils import (
-    C0,
     CR,
+    color_string,
 )
 from chameleon.commands.util import (
     ArgumentParserNoExit,
@@ -74,7 +74,7 @@ class HWConnect(BaseCLIUnit):
             print(f" {{ Chameleon {model} connected: v{major}.{minor} }}")
 
         except Exception as e:
-            print(f"{CR}Chameleon Connect fail: {str(e)}{C0}")
+            print(color_string((CR, f"Chameleon Connect fail: {str(e)}")))
             self.device_com.close()
 
 
@@ -203,7 +203,7 @@ class HWBatteryInfo(DeviceRequiredUnit):
         print(f"   voltage    -> {voltage} mV")
         print(f"   percentage -> {percentage}%")
         if percentage < HWBatteryInfo.BATTERY_LOW_LEVEL:
-            print(f"{CR}[!] Low battery, please charge.{C0}")
+            print(color_string((CR, "[!] Low battery, please charge.")))
 
 
 @hw.command('raw')

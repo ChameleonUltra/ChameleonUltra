@@ -11,6 +11,7 @@ from chameleon.chameleon_utils import (
     CG,
     CR,
     CY,
+    color_string,
 )
 from chameleon.commands.util import (
     ArgumentParserNoExit,
@@ -81,19 +82,19 @@ class RootDumpHelp(BaseCLIUnit):
             if dump_description:
                 p.print_help()
             else:
-                cmd_title = f"{CG}{cmd_node.fullname}{C0}"
+                cmd_title = color_string((CG, cmd_node.fullname))
                 print(f"{cmd_title}".ljust(col1_width), end="")
                 p.prog = " " * (visual_col1_width - len("usage: ") - 1)
                 usage = p.format_usage().removeprefix("usage: ").strip()
-                print(f"{CY}{usage}{C0}")
+                print(color_string((CY, usage)))
         else:
             if dump_cmd_groups and not cmd_node.root:
                 if dump_description:
                     print("=" * 80)
-                    print(f"{CR}{cmd_node.fullname}{C0}\n")
-                    print(f"{CC}{cmd_node.help_text}{C0}\n")
+                    print(color_string((CR, cmd_node.fullname)))
+                    print(color_string((CC, cmd_node.help_text)))
                 else:
-                    print(f"{CB}== {cmd_node.fullname} =={C0}")
+                    print(color_string((CB, f"== {cmd_node.fullname} ==")))
             for child in cmd_node.children:
                 RootDumpHelp.dump_help(child, depth + 1, dump_cmd_groups, dump_description)
 

@@ -5,9 +5,9 @@ from chameleon.chameleon_enum import (
     MifareClassicPrngType,
 )
 from chameleon.chameleon_utils import (
-    C0,
     CR,
     CY,
+    color_string,
 )
 from chameleon.commands.util import (
     ArgumentParserNoExit,
@@ -141,17 +141,17 @@ examples/notes:
             data = data.replace(' ', '')
             if re.match(r'^[0-9a-fA-F]+$', data):
                 if len(data) % 2 != 0:
-                    print(f" [!] {CR}The length of the data must be an integer multiple of 2.{C0}")
+                    print(f" [!] {color_string((CR, 'The length of the data must be an integer multiple of 2.'))}")
                     return
                 else:
                     data_bytes = bytes.fromhex(data)
             else:
-                print(f" [!] {CR}The data must be a HEX string{C0}")
+                print(f" [!] {color_string((CR, 'The data must be a HEX string'))}")
                 return
         else:
             data_bytes = []
         if args.bits is not None and args.crc:
-            print(f" [!] {CR}--bits and --crc are mutually exclusive{C0}")
+            print(f" [!] {color_string((CR, '--bits and --crc are mutually exclusive'))}")
             return
 
         # Exec 14a raw cmd.
@@ -164,4 +164,4 @@ examples/notes:
                 ' '.join([hex(byte).replace('0x', '').rjust(2, '0') for byte in resp])
             )
         else:
-            print(F" [*] {CY}No response{C0}")
+            print(f" [*] {color_string((CY, 'No response'))}")

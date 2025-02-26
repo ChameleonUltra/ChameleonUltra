@@ -7,10 +7,10 @@ from chameleon.chameleon_enum import (
     ButtonType,
 )
 from chameleon.chameleon_utils import (
-    C0,
     CG,
     CR,
     CY,
+    color_string,
 )
 from chameleon.commands.util import (
     ArgumentParserNoExit,
@@ -38,7 +38,7 @@ class HWSettingsAnimation(DeviceRequiredUnit):
             mode = AnimationMode[args.mode]
             self.cmd.set_animation_mode(mode)
             print("Animation mode change success.")
-            print(f"{CY}Do not forget to store your settings in flash!{C0}")
+            print(color_string((CY, "Do not forget to store your settings in flash!")))
         else:
             print(AnimationMode(self.cmd.get_animation_mode()))
 
@@ -117,7 +117,7 @@ class HWButtonSettingsGet(DeviceRequiredUnit):
         if args.function is not None:
             function = ButtonPressFunction[args.function]
             if not args.a and not args.b:
-                print(f"{CR}You must specify which button you want to change{C0}")
+                print(color_string((CR, "You must specify which button you want to change")))
                 return
             if args.a:
                 button = ButtonType.A
@@ -129,7 +129,7 @@ class HWButtonSettingsGet(DeviceRequiredUnit):
                 self.cmd.set_button_press_config(button, function)
             print(f" - Successfully set function '{function}'"
                   f" to Button {button.name} {'long-press' if args.long else 'short-press'}")
-            print(f"{CY}Do not forget to store your settings in flash!{C0}")
+            print(color_string((CY, "Do not forget to store your settings in flash!")))
         else:
             if args.a:
                 button_list = [ButtonType.A]
@@ -141,11 +141,11 @@ class HWButtonSettingsGet(DeviceRequiredUnit):
                 if not args.long:
                     resp = self.cmd.get_button_press_config(button)
                     button_fn = ButtonPressFunction(resp)
-                    print(f" - {CG}{button.name} short{C0}: {button_fn}")
+                    print(f"{color_string((CG, f'{button.name} short'))}: {button_fn}")
                 if not args.short:
                     resp_long = self.cmd.get_long_button_press_config(button)
                     button_long_fn = ButtonPressFunction(resp_long)
-                    print(f" - {CG}{button.name} long {C0}: {button_long_fn}")
+                    print(f"{color_string((CG, f'{button.name} long'))}: {button_long_fn}")
                 print("")
 
 
@@ -160,23 +160,18 @@ class HWSettingsBLEKey(DeviceRequiredUnit):
 
     def on_exec(self, args: argparse.Namespace):
         key = self.cmd.get_ble_pairing_key()
-        print(" - The current key of the device(ascii): "
-              f"{CG}{key}{C0}")
+        print(f" - The current key of the device(ascii): {color_string((CG, key))}")
 
         if args.key is not None:
             if len(args.key) != 6:
-                print(f" - {CR}The ble connect key length must be 6{C0}")
+                print(f" - {color_string((CR, 'The ble connect key length must be 6'))}")
                 return
             if re.match(r'[0-9]{6}', args.key):
                 self.cmd.set_ble_connect_key(args.key)
-                print(" - Successfully set ble connect key to :", end='')
-                print(f"{CG}"
-                      f" { args.key }"
-                      f"{C0}"
-                      )
-                print(f"{CY}Do not forget to store your settings in flash!{C0}")
+                print(f" - Successfully set ble connect key to : {color_string((CG, args.key))}")
+                print(color_string((CY, "Do not forget to store your settings in flash!")))
             else:
-                print(f" - {CR}Only 6 ASCII characters from 0 to 9 are supported.{C0}")
+                print(f" - {color_string((CR, 'Only 6 ASCII characters from 0 to 9 are supported.'))}")
 
 
 @settings.command('blepair')
@@ -192,22 +187,25 @@ class HWBlePair(DeviceRequiredUnit):
 
     def on_exec(self, args: argparse.Namespace):
         is_pairing_enable = self.cmd.get_ble_pairing_enable()
+        enabled_str = color_string((CG, "Enabled"))
+        disabled_str = color_string((CR, "Disabled"))
+
         if not args.enable and not args.disable:
             if is_pairing_enable:
-                print(f" - BLE pairing: {CG} Enabled{C0}")
+                print(f" - BLE pairing: {enabled_str}")
             else:
-                print(f" - BLE pairing: {CR} Disabled{C0}")
+                print(f" - BLE pairing: {disabled_str}")
         elif args.enable:
             if is_pairing_enable:
-                print(f"{CY} BLE pairing is already enabled.{C0}")
+                print(color_string((CY, "BLE pairing is already enabled.")))
                 return
             self.cmd.set_ble_pairing_enable(True)
-            print(f" - Successfully change ble pairing to {CG}Enabled{C0}.")
-            print(f"{CY}Do not forget to store your settings in flash!{C0}")
+            print(f" - Successfully change ble pairing to {enabled_str}.")
+            print(color_string((CY, "Do not forget to store your settings in flash!")))
         elif args.disable:
             if not is_pairing_enable:
-                print(f"{CY} BLE pairing is already disabled.{C0}")
+                print(color_string((CY, "BLE pairing is already disabled.")))
                 return
             self.cmd.set_ble_pairing_enable(False)
-            print(f" - Successfully change ble pairing to {CR}Disabled{C0}.")
-            print(f"{CY}Do not forget to store your settings in flash!{C0}")
+            print(f" - Successfully change ble pairing to {disabled_str}.")
+            print(color_string((CY, "Do not forget to store your settings in flash!")))

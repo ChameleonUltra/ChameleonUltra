@@ -16,10 +16,10 @@ from chameleon.chameleon_enum import (
     TagSpecificType,
 )
 from chameleon.chameleon_utils import (
-    C0,
     CY,
     ArgsParserError,
     ArgumentParserNoExit,
+    color_string,
     default_cwd,
 )
 
@@ -251,7 +251,7 @@ class HF14AAntiCollArgsUnit(DeviceRequiredUnit):
                 uid = new_uid
                 anti_coll_data_changed = True
             else:
-                print(f'{CY}Requested UID already set{C0}')
+                print(color_string((CY, "Requested UID already set")))
         if args.atqa is not None:
             change_requested = True
             atqa_str: str = args.atqa.strip()
@@ -263,7 +263,7 @@ class HF14AAntiCollArgsUnit(DeviceRequiredUnit):
                 atqa = new_atqa
                 anti_coll_data_changed = True
             else:
-                print(f'{CY}Requested ATQA already set{C0}')
+                print(color_string((CY, "Requested ATQA already set")))
         if args.sak is not None:
             change_requested = True
             sak_str: str = args.sak.strip()
@@ -275,7 +275,7 @@ class HF14AAntiCollArgsUnit(DeviceRequiredUnit):
                 sak = new_sak
                 anti_coll_data_changed = True
             else:
-                print(f'{CY}Requested SAK already set{C0}')
+                print(color_string((CY, "Requested SAK already set")))
         if (args.ats is not None) or args.delete_ats:
             change_requested = True
             if args.delete_ats:
@@ -290,7 +290,7 @@ class HF14AAntiCollArgsUnit(DeviceRequiredUnit):
                 ats = new_ats
                 anti_coll_data_changed = True
             else:
-                print(f'{CY}Requested ATS already set{C0}')
+                print(color_string((CY, "Requested ATS already set")))
         if anti_coll_data_changed:
             self.cmd.hf14a_set_anti_coll_data(uid, atqa, sak, ats)
         return change_requested, anti_coll_data_changed, uid, atqa, sak, ats
