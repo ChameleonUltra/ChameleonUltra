@@ -322,3 +322,5 @@ def run():
             except KeyboardInterrupt:
                 cmd_str = 'exit'
         exec_cmd(cmd_str, device_com)
+
+if __name__ == '__main__': run()
