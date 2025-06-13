@@ -2,10 +2,12 @@ import queue
 import struct
 import threading
 import time
+
 import serial
-from typing import Union
-from chameleon_utils import CR, CG, CC, CY, C0
-from chameleon_enum import Command, Status
+
+from chameleon.chameleon_enum import Command, Status
+from chameleon.chameleon_utils import C0, CC, CG, CR, CY, color_string
+
 
 # each thread is waiting for its data for 100 ms before looping again
 THREAD_BLOCKING_TIMEOUT = 0.1
@@ -57,7 +59,7 @@ class ChameleonCom:
         """
             Create a chameleon device instance
         """
-        self.serial_instance: Union[serial.Serial, None] = None
+        self.serial_instance: serial.Serial | None = None
         self.send_data_queue = queue.Queue()
         self.wait_response_map = {}
         self.event_closing = threading.Event()
@@ -114,7 +116,7 @@ class ChameleonCom:
             raise NotOpenException("Please call open() function to start device.")
 
     @staticmethod
-    def lrc_calc(array: Union[bytearray, bytes]) -> int:
+    def lrc_calc(array: bytearray | bytes) -> int:
         """
             Calc lrc and auto cut byte.
 
@@ -213,13 +215,17 @@ class ChameleonCom:
                                 try:
                                     status_string = str(Status(data_status))
                                     if data_status == Status.SUCCESS:
-                                        status_string = f'{CG}{status_string:30}{C0}'
+                                        status_string = color_string((CG, status_string.ljust(30)))
                                     else:
-                                        status_string = f'{CR}{status_string:30}{C0}'
+                                        status_string = color_string((CR, status_string.ljust(30)))
                                 except ValueError:
-                                    status_string = f"{CR}{data_status:30x}{C0}"
-                                print(f'<= {CC}{command_string:40}{C0}{status_string}'
-                                      f'{CY}{data_response.hex() if data_response is not None else ""}{C0}')
+                                    status_string = color_string((CR, f"{data_status:30x}"))
+                                    response = data_response.hex() if data_response is not None else ""
+                                    print(color_string((C0, "<="),
+                                                       (CC, command_string.ljust(40)),
+                                                       (C0, status_string),
+                                                       (CY, response))
+                                           )
                             if data_cmd in self.wait_response_map:
                                 # call processor
                                 if 'callback' in self.wait_response_map[data_cmd]:
@@ -298,7 +304,7 @@ class ChameleonCom:
                         self.wait_response_map[task_cmd]['is_timeout'] = True
             time.sleep(THREAD_BLOCKING_TIMEOUT)
 
-    def make_data_frame_bytes(self, cmd: int, data: Union[bytes, None] = None, status: int = 0) -> bytes:
+    def make_data_frame_bytes(self, cmd: int, data: bytes | None = None, status: int = 0) -> bytes:
         """
             Make data frame
 
@@ -316,7 +322,7 @@ class ChameleonCom:
         frame[struct.calcsize(f'!BBHHHB{len(data)}s')] = self.lrc_calc(frame[:struct.calcsize(f'!BBHHHB{len(data)}s')])
         return bytes(frame)
 
-    def send_cmd_auto(self, cmd: int, data: Union[bytes, None] = None, status: int = 0, callback=None, timeout: int = 3,
+    def send_cmd_auto(self, cmd: int, data: bytes | None = None, status: int = 0, callback=None, timeout: int = 3,
                       close: bool = False):
         """
             Send cmd to device
@@ -341,15 +347,15 @@ class ChameleonCom:
             except ValueError:
                 command_name = "(UNKNOWN)"
             cmd_string = f'{cmd:4} {command_name}{f"[{status:04x}]" if status != 0 else ""}'
-            print(f'=> {CC}{cmd_string:40}{C0}'
-                  f'{CY}{data.hex() if data is not None else ""}{C0}')
+            hexdata = data.hex() if data is not None else ""
+            print(color_string((C0, "<="), (CC, cmd_string.ljust(40)), (CY, hexdata)))
         data_frame = self.make_data_frame_bytes(cmd, data, status)
         task = {'cmd': cmd, 'frame': data_frame, 'timeout': timeout, 'close': close}
         if callable(callback):
             task['callback'] = callback
         self.send_data_queue.put(task)
 
-    def send_cmd_sync(self, cmd: int, data: Union[bytes, None] = None, status: int = 0,
+    def send_cmd_sync(self, cmd: int, data: bytes | None = None, status: int = 0,
                       timeout: int = 3) -> Response:
         """
             Send cmd to device, and block receive data.

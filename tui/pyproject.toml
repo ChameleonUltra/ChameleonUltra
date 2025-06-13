@@ -1,0 +1,113 @@
+[project]
+name = "ChameleonTUI"
+description = "A TUI for interacting with Chameleon Mini/Ultra devices."
+requires-python = "~=3.10"
+license = {file = "LICENSE"}
+#readme = {file = "README.md", content-type = "text/markdown"}
+version = "0.1.0"
+
+authors = [
+    {name = "LupusE", email = "lupuse@users.noreply.github.com"},
+    {name = "GameTec-Live", email = "gametec-live@users.noreply.github.com"}
+    ]
+
+dependencies = [
+    "pyserial ~= 3.5",
+    "colorama ~= 0.4.6",
+    "prompt-toolkit ~= 3.0.50"
+]
+
+classifiers = [
+    "Intended Audience :: Developers",
+
+    "Operating System :: OS Independent",
+
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.optional-dependencies]
+test = [
+    "coverage[toml]",
+    "hypothesis",
+    "hypothesis-pytest",
+    "pre-commit",
+    "pytest >= 6.0",
+    "pytest-cov",
+    ]
+
+[project.scripts]
+chameleon = "chameleon.interface:run"
+
+[project.urls]
+repository = "https://github.com/ChameleonUltra/ChameleonUltra"
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+    "setuptools >= 61.0.0",
+    "wheel",
+    ]
+
+[tool.setuptools]
+zip-safe = false
+
+[tool.ruff]
+fix = true
+indent-width = 4
+line-length = 88
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.ruff.lint]
+extend-select = ["I", "PT", "TID", "UP", "E501"]
+
+[tool.ruff.lint.flake8-pytest-style]
+parametrize-names-type = "csv"
+parametrize-values-row-type = "list"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+lines-between-types = 1
+section-order = ["future", "standard-library", "testing", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.lint.isort.sections]
+testing = ["test", "pytest", "hypothesis"]
+
+[tool.mypy]
+pretty = true
+python_version = "3.10"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+implicit_reexport = false
+no_implicit_optional = true
+strict_optional = true
+strict_equality = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
+allow_redefinition = false
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+skip_empty = true
+
+[tool.pytest.ini_options]
+addopts = "-v --lf --cov=chameleon --cov-report term"
+testpaths = ["test"]
